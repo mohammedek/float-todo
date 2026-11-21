@@ -60,9 +60,39 @@ Tasks are stored locally in:
 
 Each user has their own data. No shared database or server required.
 
-## Keyboard Shortcuts
+## MCP Integration (Claude Desktop)
 
-- `⌘ + ⇧ + T` — Toggle window visibility
+Float Todo includes an MCP server so Claude (or any MCP client) can read and manage your tasks.
+
+### Setup
+The MCP server is at `mcp-server.js`. To connect it to Claude Desktop, add this to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "float-todo": {
+      "command": "node",
+      "args": ["/path/to/float-todo/mcp-server.js"]
+    }
+  }
+}
+```
+
+### Available Tools
+- `list_tasks` — List all tasks (pending + done)
+- `add_task` — Add a new task
+- `complete_task` — Mark a task as done
+- `uncomplete_task` — Reopen a task
+- `delete_task` — Delete a task
+- `edit_task` — Edit task title
+- `add_comment` — Add a comment to a task
+- `assign_project` — Assign a project
+- `assign_pet` — Assign a cat pet
+- `clear_completed` — Remove all completed tasks
+
+### Resources
+- `float-todo://tasks/pending` — Pending tasks only
+- `float-todo://tasks/all` — All tasks
 
 ## License
 

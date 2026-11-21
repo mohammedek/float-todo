@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a84ff"/>
+      <stop offset="100%" stop-color="#5e5ce6"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.35)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.12)"/>
+    </linearGradient>
+    <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffb340"/>
+      <stop offset="100%" stop-color="#ff9500"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="28" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- App icon background (macOS squircle) -->
+  <rect x="72" y="72" width="880" height="880" rx="200" fill="url(#bg)"/>
+  <rect x="72" y="72" width="880" height="880" rx="200" fill="url(#glass)" opacity="0.5"/>
+  <rect x="88" y="88" width="848" height="848" rx="184" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="4"/>
+
+  <!-- Cat face -->
+  <g filter="url(#shadow)">
+    <!-- Ears -->
+    <path d="M330 400 L296 268 L432 336 Z" fill="url(#fur)"/>
+    <path d="M694 400 L728 268 L592 336 Z" fill="url(#fur)"/>
+    <path d="M352 372 L330 300 L408 340 Z" fill="#ff7a59" opacity="0.55"/>
+    <path d="M672 372 L694 300 L616 340 Z" fill="#ff7a59" opacity="0.55"/>
+
+    <!-- Head -->
+    <ellipse cx="512" cy="512" rx="240" ry="200" fill="url(#fur)"/>
+    <ellipse cx="512" cy="560" rx="150" ry="110" fill="#fff3e0" opacity="0.55"/>
+
+    <!-- Eyes -->
+    <ellipse cx="424" cy="486" rx="56" ry="62" fill="#ffffff"/>
+    <ellipse cx="600" cy="486" rx="56" ry="62" fill="#ffffff"/>
+    <ellipse cx="424" cy="494" rx="26" ry="32" fill="#1d1d1f"/>
+    <ellipse cx="600" cy="494" rx="26" ry="32" fill="#1d1d1f"/>
+    <circle cx="414" cy="480" r="9" fill="#ffffff"/>
+    <circle cx="590" cy="480" r="9" fill="#ffffff"/>
+
+    <!-- Nose -->
+    <path d="M498 556 Q512 570 526 556 Q512 544 498 556 Z" fill="#ff6b6b"/>
+
+    <!-- Mouth -->
+    <path d="M512 570 Q512 592 490 600" stroke="#1d1d1f" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.75"/>
+    <path d="M512 570 Q512 592 534 600" stroke="#1d1d1f" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.75"/>
+
+    <!-- Whiskers -->
+    <path d="M300 540 L180 520 M300 576 L184 590" stroke="#1d1d1f" stroke-width="7" stroke-linecap="round" opacity="0.55"/>
+    <path d="M724 540 L844 520 M724 576 L840 590" stroke="#1d1d1f" stroke-width="7" stroke-linecap="round" opacity="0.55"/>
+  </g>
+
+  <!-- Checkmark badge -->
+  <g filter="url(#shadow)">
+    <circle cx="756" cy="764" r="132" fill="#34c759"/>
+    <circle cx="756" cy="764" r="132" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="6"/>
+    <path d="M686 768 L736 818 L830 712" stroke="#ffffff" stroke-width="34" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

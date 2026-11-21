@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Float Todo Cats</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .cat {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 48px;
+      height: 48px;
+      pointer-events: auto;
+      cursor: pointer;
+      filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.28));
+      will-change: transform;
+    }
+
+    .cat svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      transition: transform 0.15s ease-out;
+    }
+
+    .cat:hover svg {
+      transform: scale(1.15);
+    }
+
+    .cat:hover {
+      filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.35));
+    }
+
+    .cat.bob {
+      animation: cat-bob 0.45s ease-in-out infinite;
+    }
+
+    @keyframes cat-bob {
+      0%, 100% { margin-top: 0; }
+      50% { margin-top: -3px; }
+    }
+
+    .cat.sleepy svg {
+      opacity: 0.85;
+    }
+
+    .bubble {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 10px;
+      padding: 5px 9px;
+      font: 500 11px -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      letter-spacing: -0.01em;
+      color: #1d1d1f;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+    }
+
+    .bubble::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: rgba(255, 255, 255, 0.96);
+    }
+
+    .cat:hover .bubble,
+    .cat.talking .bubble {
+      opacity: 1;
+    }
+
+    .pop {
+      position: absolute;
+      font-size: 16px;
+      pointer-events: none;
+      animation: pop-up 0.9s ease-out forwards;
+    }
+
+    @keyframes pop-up {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-46px) scale(1.35); }
+    }
+
+    .spark {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: spark-fly 0.7s ease-out forwards;
+    }
+
+    @keyframes spark-fly {
+      0% { opacity: 1; transform: translate(0, 0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+    }
+
+    .cat.knocked {
+      opacity: 0.3 !important;
+      transform: translate(var(--kx), var(--ky)) rotate(90deg) !important;
+      transition: all 0.4s ease-in;
+      pointer-events: none;
+    }
+
+    .ak47 {
+      position: absolute;
+      width: 64px;
+      height: 24px;
+      pointer-events: none;
+      z-index: 5;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+      animation: ak-show 0.8s ease-out forwards;
+    }
+
+    @keyframes ak-show {
+      0% { opacity: 0; transform: scale(0.3); }
+      20% { opacity: 1; transform: scale(1.1); }
+      80% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.8); }
+    }
+
+    .gunshot {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,220,100,0.9) 0%, rgba(255,120,0,0.6) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: 6;
+      animation: gunshot-flash 0.4s ease-out forwards;
+    }
+
+    @keyframes gunshot-flash {
+      0% { opacity: 1; transform: scale(0.3); }
+      50% { opacity: 1; transform: scale(1.4); }
+      100% { opacity: 0; transform: scale(2); }
+    }
+
+    .bullet {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #ffcc00;
+      box-shadow: 0 0 6px #ff9500;
+      pointer-events: none;
+      z-index: 6;
+      animation: bullet-fly 0.4s ease-out forwards;
+    }
+
+    @keyframes bullet-fly {
+      0% { opacity: 1; transform: translate(0, 0); }
+      100% { opacity: 0; transform: translate(var(--bx), var(--by)); }
+    }
+      font-size: 22px;
+      pointer-events: none;
+      z-index: 7;
+      animation: angry-rise 0.9s ease-out forwards;
+    }
+
+    @keyframes angry-rise {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-40px) scale(1.4); }
+    }
+  </style>
+</head>
+<body>
+  <div id="layer"></div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    // Popular internet & Instagram cat memes
+    const CHARACTER_SVGS = [
+      {
+        name: 'Grumpy Cat',
+        svg: `<svg viewBox="0 0 32 32" fill="none">
+          <ellipse cx="16" cy="18" rx="11" ry="8" fill="#8b4513"/>
+          <path d="M8 12 L5 8 L10 10 Z" fill="#8b4513"/>
+          <path d="M24 12 L27 8 L22 10 Z" fill="#8b4513"/>
+          <circle cx="12" cy="14" r="3" fill="#8b4513"/>
+          <circle cx="20" cy="14" r="3" fill="#8b4513"/>
+          <circle cx="12" cy="14" r="1.5" fill="#fff"/>
+          <circle cx="20" cy="14" r="1.5" fill="#fff"/>
+          <circle cx="12" cy="14" r="0.7" fill="#1d1d1f"/>
+          <circle cx="20" cy="14" r="0.7" fill="#1d1d1f"/>
+          <path d="M14 20 Q16 18 18 20" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M14 20 Q16 22 18 20" stroke="#1d1d1f" stroke-width="1" fill="none" stroke-linecap="round"/>
+          <path d="M10 18 L6 16 M22 18 L26 16" stroke="#8b4513" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M8 22 Q6 24 8 26" stroke="#8b4513" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M24 22 Q26 24 24 26" stroke="#8b4513" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>`
+      },
+      {
+        name: 'Smudge the Cat',
+        svg: `<svg viewBox="0 0 32 32" fill="none">
+          <ellipse cx="16" cy="18" rx="11" ry="8" fill="#f5f5f5"/>
+          <path d="M8 12 L5 8 L10 10 Z" fill="#f5f5f5"/>
+          <path d="M24 12 L27 8 L22 10 Z" fill="#f5f5f5"/>
+          <circle cx="12" cy="14" r="3" fill="#fff"/>
+          <circle cx="20" cy="14" r="3" fill="#fff"/>
+          <circle cx="12" cy="14" r="1.5" fill="#1d1d1f"/>
+          <circle cx="20" cy="14" r="1.5" fill="#1d1d1f"/>
+          <path d="M14 18 Q16 21 18 18" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="16" cy="14" rx="2" ry="1.5" fill="#1d1d1f"/>
+          <path d="M6 14 Q4 12 6 10" stroke="#f5f5f5" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M26 14 Q28 12 26 10" stroke="#f5f5f5" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M8 22 Q6 24 8 26" stroke="#f5f5f5" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M24 22 Q26 24 24 26" stroke="#f5f5f5" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M10 10 L8 6 M22 10 L24 6" stroke="#f5f5f5" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12 8 Q10 6 8 8 M20 8 Q22 6 24 8" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M14 20 Q16 22 18 20" stroke="#1d1d1f" stroke-width="1" fill="none" stroke-linecap="round"/>
+        </svg>`
+      },
+      {
+        name: 'Huh Cat',
+        svg: `<svg viewBox="0 0 32 32" fill="none">
+          <ellipse cx="16" cy="18" rx="11" ry="8" fill="#1d1d1f"/>
+          <path d="M8 12 L5 8 L10 10 Z" fill="#1d1d1f"/>
+          <path d="M24 12 L27 8 L22 10 Z" fill="#1d1d1f"/>
+          <circle cx="12" cy="14" r="3" fill="#fff"/>
+          <circle cx="20" cy="14" r="3" fill="#fff"/>
+          <circle cx="12" cy="14" r="1.5" fill="#1d1d1f"/>
+          <circle cx="20" cy="14" r="1.5" fill="#1d1d1f"/>
+          <path d="M14 18 Q16 20 18 18" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="16" cy="14" rx="2" ry="1.5" fill="#1d1d1f"/>
+          <path d="M6 14 Q4 12 6 10" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M26 14 Q28 12 26 10" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M8 22 Q6 24 8 26" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M24 22 Q26 24 24 26" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M10 10 L8 6 M22 10 L24 6" stroke="#1d1d1f" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12 8 Q10 6 8 8 M20 8 Q22 6 24 8" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>`
+      },
+      {
+        name: 'Nyan Cat',
+        svg: `<svg viewBox="0 0 32 32" fill="none">
+          <ellipse cx="16" cy="18" rx="11" ry="8" fill="#ff9500"/>
+          <path d="M8 12 L5 8 L10 10 Z" fill="#ff9500"/>
+          <path d="M24 12 L27 8 L22 10 Z" fill="#ff9500"/>
+          <circle cx="12" cy="14" r="3" fill="#fff"/>
+          <circle cx="20" cy="14" r="3" fill="#fff"/>
+          <circle cx="12" cy="14" r="1.5" fill="#1d1d1f"/>
+          <circle cx="20" cy="14" r="1.5" fill="#1d1d1f"/>
+          <path d="M14 18 Q16 21 18 18" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="16" cy="14" rx="2" ry="1.5" fill="#1d1d1f"/>
+          <path d="M4 18 Q6 16 8 18 M24 18 Q26 16 28 18" stroke="#ff9500" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M6 20 Q8 22 10 20" stroke="#ff9500" stroke-width="1" fill="none" stroke-linecap="round"/>
+          <path d="M10 10 L8 6 M22 10 L24 6" stroke="#ff9500" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12 6 Q14 4 16 6 Q18 4 20 6" stroke="#ff6b9d" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>`
+      },
+      {
+        name: 'Keyboard Cat',
+        svg: `<svg viewBox="0 0 32 32" fill="none">
+          <rect x="6" y="9" width="20" height="13" rx="2" fill="#ff9500"/>
+          <ellipse cx="16" cy="19" rx="11" ry="6" fill="#ff9500"/>
+          <path d="M8 13 L5 9 L10 11 Z" fill="#ff9500"/>
+          <path d="M24 13 L27 9 L22 11 Z" fill="#ff9500"/>
+          <circle cx="12" cy="15" r="2" fill="#fff"/>
+          <circle cx="20" cy="15" r="2" fill="#fff"/>
+          <circle cx="12" cy="15" r="1" fill="#1d1d1f"/>
+          <circle cx="20" cy="15" r="1" fill="#1d1d1f"/>
+          <path d="M14 20 Q16 22 18 20" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <rect x="8" y="11" width="2" height="1" fill="#fff"/>
+          <rect x="12" y="11" width="2" height="1" fill="#fff"/>
+          <rect x="16" y="11" width="2" height="1" fill="#fff"/>
+          <rect x="20" y="11" width="2" height="1" fill="#fff"/>
+          <rect x="8" y="13" width="2" height="1" fill="#fff"/>
+          <rect x="12" y="13" width="2" height="1" fill="#fff"/>
+          <rect x="16" y="13" width="2" height="1" fill="#fff"/>
+          <rect x="20" y="13" width="2" height="1" fill="#fff"/>
+          <path d="M10 11 L8 7 M22 11 L24 7" stroke="#ff9500" stroke-width="2" stroke-linecap="round"/>
+        </svg>`
+      },
+      {
+        name: 'Business Cat',
+        svg: `<svg viewBox="0 0 32 32" fill="none">
+          <ellipse cx="16" cy="18" rx="11" ry="8" fill="#1d1d1f"/>
+          <path d="M8 12 L5 8 L10 10 Z" fill="#1d1d1f"/>
+          <path d="M24 12 L27 8 L22 10 Z" fill="#1d1d1f"/>
+          <circle cx="12" cy="14" r="3" fill="#1d1d1f"/>
+          <circle cx="20" cy="14" r="3" fill="#1d1d1f"/>
+          <circle cx="12" cy="14" r="1.5" fill="#1d1d1f"/>
+          <circle cx="20" cy="14" r="1.5" fill="#1d1d1f"/>
+          <path d="M14 18 Q16 21 18 18" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="16" cy="14" rx="2" ry="1.5" fill="#1d1d1f"/>
+          <path d="M6 14 Q4 12 6 10" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M26 14 Q28 12 26 10" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M8 22 Q6 24 8 26" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M24 22 Q26 24 24 26" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M10 10 L8 6 M22 10 L24 6" stroke="#1d1d1f" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12 8 L14 6 M20 8 L18 6" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+          <path d="M10 20 Q12 18 14 20" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M18 20 Q20 18 22 20" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>`
+      },
+      {
+        name: 'Maxwell the Cat',
+        svg: `<svg viewBox="0 0 32 32" fill="none">
+          <ellipse cx="16" cy="17" rx="10" ry="9" fill="#1d1d1f"/>
+          <circle cx="16" cy="13" r="7" fill="#1d1d1f"/>
+          <path d="M10 8 L8 3 L13 6 Z" fill="#1d1d1f"/>
+          <path d="M22 8 L24 3 L19 6 Z" fill="#1d1d1f"/>
+          <circle cx="13" cy="12" r="2.5" fill="#fff"/>
+          <circle cx="19" cy="12" r="2.5" fill="#fff"/>
+          <circle cx="13" cy="12" r="1.2" fill="#1d1d1f"/>
+          <circle cx="19" cy="12" r="1.2" fill="#1d1d1f"/>
+          <path d="M14 16 Q16 18 18 16" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <ellipse cx="16" cy="13.5" rx="1.5" ry="1" fill="#fff"/>
+          <path d="M8 20 Q6 22 8 24" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M24 20 Q26 22 24 24" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M12 24 L12 28 M20 24 L20 28" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>`
+      },
+      {
+        name: 'Screaming Cat',
+        svg: `<svg viewBox="0 0 32 32" fill="none">
+          <ellipse cx="16" cy="18" rx="11" ry="8" fill="#ff9500"/>
+          <path d="M8 12 L5 7 L10 10 Z" fill="#ff9500"/>
+          <path d="M24 12 L27 7 L22 10 Z" fill="#ff9500"/>
+          <circle cx="12" cy="14" r="3" fill="#fff"/>
+          <circle cx="20" cy="14" r="3" fill="#fff"/>
+          <circle cx="12" cy="14" r="1.5" fill="#1d1d1f"/>
+          <circle cx="20" cy="14" r="1.5" fill="#1d1d1f"/>
+          <ellipse cx="16" cy="21" rx="4" ry="3" fill="#1d1d1f"/>
+          <ellipse cx="16" cy="21" rx="2" ry="1.5" fill="#ff6b6b"/>
+          <path d="M10 18 L6 16 M22 18 L26 16" stroke="#ff9500" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M8 22 Q6 24 8 26" stroke="#ff9500" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M24 22 Q26 24 24 26" stroke="#ff9500" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M10 10 L8 5 M22 10 L24 5" stroke="#ff9500" stroke-width="2" stroke-linecap="round"/>
+          <path d="M13 9 L12 4 M19 9 L20 4" stroke="#ff9500" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>`
+      },
+      {
+        name: 'Cat Loaf',
+        svg: `<svg viewBox="0 0 32 32" fill="none">
+          <ellipse cx="16" cy="20" rx="13" ry="7" fill="#ffcc00"/>
+          <ellipse cx="16" cy="17" rx="11" ry="6" fill="#ffcc00"/>
+          <path d="M7 14 L4 10 L9 12 Z" fill="#ffcc00"/>
+          <path d="M25 14 L28 10 L23 12 Z" fill="#ffcc00"/>
+          <circle cx="12" cy="16" r="2.5" fill="#fff"/>
+          <circle cx="20" cy="16" r="2.5" fill="#fff"/>
+          <circle cx="12" cy="16" r="1.2" fill="#1d1d1f"/>
+          <circle cx="20" cy="16" r="1.2" fill="#1d1d1f"/>
+          <path d="M14 20 Q16 22 18 20" stroke="#1d1d1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="16" cy="18" rx="2" ry="1.5" fill="#1d1d1f"/>
+          <path d="M6 20 Q4 22 6 24" stroke="#ffcc00" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M26 20 Q28 22 26 24" stroke="#ffcc00" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M9 13 L7 9 M23 13 L25 9" stroke="#ffcc00" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>`
+      },
+      {
+        name: 'Party Cat',
+        svg: `<svg viewBox="0 0 32 32" fill="none">
+          <ellipse cx="16" cy="18" rx="11" ry="8" fill="#af52de"/>
+          <path d="M8 12 L5 8 L10 10 Z" fill="#af52de"/>
+          <path d="M24 12 L27 8 L22 10 Z" fill="#af52de"/>
+          <circle cx="12" cy="14" r="3" fill="#fff"/>
+          <circle cx="20" cy="14" r="3" fill="#fff"/>
+          <circle cx="12" cy="14" r="1.5" fill="#1d1d1f"/>
+          <circle cx="20" cy="14" r="1.5" fill="#1d1d1f"/>
+          <path d="M14 18 Q16 21 18 18" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="16" cy="14" rx="2" ry="1.5" fill="#1d1d1f"/>
+          <path d="M6 14 Q4 12 6 10" stroke="#af52de" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M26 14 Q28 12 26 10" stroke="#af52de" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M8 22 Q6 24 8 26" stroke="#af52de" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M24 22 Q26 24 24 26" stroke="#af52de" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M10 10 L8 6 M22 10 L24 6" stroke="#af52de" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="6" r="1.5" fill="#ffd700"/>
+          <circle cx="20" cy="6" r="1.5" fill="#ffd700"/>
+          <path d="M14 6 L16 4 L18 6" stroke="#ffd700" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>`
+      }
+    ];
+
+    const MESSAGES = {
+      idle: ['huh?', 'i do a wait', 'no thoughts just vibes', 'i\'m just a baby', 'pet me?'],
+      walking: ['zoomies', 'on my way!', 'paws on the ground', 'let\'s gooo'],
+      reminder: ['don\'t forget!!', 'hey bestie...', 'task check!', 'psst... your list', 'huh? task?'],
+      celebrating: ['LET\'S GOOO', 'poggers!', 'we did it!', 'hooray!!', 'slay!'],
+      tired: ['eepy hours', 'brain empty', 'i need a nap']
+    };
+
+    const layer = document.getElementById('layer');
+    const cats = new Map(); // taskId -> cat
+    let W = window.innerWidth;
+    let H = window.innerHeight;
+    let lastReminder = Date.now();
+
+    window.addEventListener('resize', () => {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      cats.forEach(cat => {
+        cat.x = Math.min(cat.x, W - 60);
+        cat.y = Math.min(cat.y, H - 100);
+        cat.tx = Math.min(cat.tx, W - 60);
+        cat.ty = Math.min(cat.ty, H - 100);
+      });
+    });
+
+    function rand(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function pickMessage(kind) {
+      const list = MESSAGES[kind] || MESSAGES.idle;
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function newTarget(cat) {
+      cat.tx = rand(40, W - 80);
+      cat.ty = rand(90, H - 120);
+    }
+
+    // Send hit rectangles to the main process so it can make the overlay
+    // clickable only while the cursor is actually over a cat.
+    let catsHidden = false;
+    let hideTimer = null;
+    let lastSyncedTasks = [];
+
+    function hideAllCats() {
+      catsHidden = true;
+      // Hide all cat elements
+      cats.forEach(cat => {
+        cat.el.style.transition = 'opacity 0.4s';
+        cat.el.style.opacity = '0';
+        cat.el.style.pointerEvents = 'none';
+        cat.hovering = false;
+      });
+      reportPositions(); // empty (filtered out)
+      // Show a message
+      const msg = document.createElement('div');
+      msg.className = 'pop';
+      msg.textContent = '😴 cats resting... back in 1 hour';
+      msg.style.left = `${W/2 - 80}px`;
+      msg.style.top = `${H/2}px`;
+      msg.style.fontSize = '14px';
+      msg.style.fontWeight = '600';
+      msg.style.color = '#fff';
+      msg.style.background = 'rgba(0,0,0,0.6)';
+      msg.style.padding = '8px 12px';
+      msg.style.borderRadius = '8px';
+      msg.style.animation = 'none';
+      msg.style.opacity = '1';
+      layer.appendChild(msg);
+      setTimeout(() => msg.remove(), 3000);
+
+      // Re-emerge after 1 hour
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        catsHidden = false;
+        // Re-create cats from cached tasks
+        if (lastSyncedTasks.length > 0) {
+          const ids = new Set(lastSyncedTasks.map(t => t.id));
+          [...cats.keys()].forEach(id => {
+            if (!ids.has(id)) {
+              const c = cats.get(id);
+              if (c) { c.el.remove(); cats.delete(id); }
+            }
+          });
+          lastSyncedTasks.forEach(task => {
+            if (!cats.has(task.id)) createCat(task);
+          });
+          // Restore visibility
+          cats.forEach(cat => {
+            cat.el.style.opacity = '1';
+            cat.el.style.pointerEvents = 'auto';
+          });
+          reportPositions();
+        }
+        hideTimer = null;
+      }, 60 * 60 * 1000);
+    }
+
+    function reportPositions() {
+      if (catsHidden) {
+        ipcRenderer.send('cat-positions', []);
+        return;
+      }
+      ipcRenderer.send('cat-positions', [...cats.values()]
+        .filter(cat => cat.knocked === 0)
+        .map(cat => ({
+          id: cat.id,
+          x: Math.round(cat.x),
+          y: Math.round(cat.y),
+          w: 48,
+          h: 48
+        })));
+    }
+
+    function triggerShoot(shooter, target) {
+      // Angry emoji on the target
+      const angry = document.createElement('div');
+      angry.className = 'angry-pop';
+      angry.textContent = '😡';
+      angry.style.left = `${target.x + 8}px`;
+      angry.style.top = `${target.y - 10}px`;
+      layer.appendChild(angry);
+      setTimeout(() => angry.remove(), 950);
+
+      // Shooter says "gotcha!"
+      shooter.bubble.textContent = 'gotcha! 😎';
+      shooter.el.classList.add('talking');
+      shooter.talking = 40;
+
+      // Target knocked out
+      target.knocked = 30;
+      target.el.classList.add('knocked');
+      target.el.classList.remove('bob');
+      target.el.style.setProperty('--kx', `${target.x}px`);
+      target.el.style.setProperty('--ky', `${target.y}px`);
+    }
+
+
+    function createCat(task) {
+      console.log('createCat:', task.text);
+      const data = CHARACTER_SVGS[Math.floor(Math.random() * CHARACTER_SVGS.length)];
+      const el = document.createElement('div');
+      el.className = 'cat bob';
+      el.innerHTML = `${data.svg}<div class="bubble"></div>`;
+
+      const cat = {
+        id: task.id,
+        text: task.text,
+        el,
+        bubble: el.querySelector('.bubble'),
+        x: rand(60, W - 100),
+        y: rand(100, H - 140),
+        tx: 0,
+        ty: 0,
+        speed: rand(0.5, 1.0),
+        pause: 0,
+        talking: 0,
+        hovering: false,
+        shootCooldown: Math.floor(rand(60, 180)),
+        knocked: 0
+      };
+      newTarget(cat);
+      el.style.transform = `translate(${cat.x}px, ${cat.y}px)`;
+      el.title = task.text;
+      // The bubble carries the task name by default.
+      cat.bubble.textContent = task.text;
+
+      el.addEventListener('mouseenter', () => {
+        cat.hovering = true;
+        clearTimeout(cat.hoverTimer);
+        cat.hoverTimer = setTimeout(() => { cat.hovering = false; }, 2000);
+      });
+
+      el.addEventListener('mouseleave', () => {
+        cat.hovering = false;
+        if (cat.hoverTimer) clearTimeout(cat.hoverTimer);
+      });
+
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Triple-click tracking
+        cat.clickCount = (cat.clickCount || 0) + 1;
+        if (cat.clickTimer2) clearTimeout(cat.clickTimer2);
+        cat.clickTimer2 = setTimeout(() => {
+          const count = cat.clickCount || 0;
+          cat.clickCount = 0;
+          cat.clickTimer2 = null;
+          if (count >= 3) {
+            // Triple click: hide all cats for 1 hour
+            hideAllCats();
+          } else if (count === 2) {
+            // Double click: open the todo panel
+            ipcRenderer.send('show-app');
+          } else {
+            // Single click: complete the task
+            popBurst(cat);
+            cats.delete(cat.id);
+            reportPositions();
+            ipcRenderer.send('cat-complete', cat.id);
+            cat.el.style.transition = 'opacity 0.3s, transform 0.3s';
+            cat.el.style.opacity = '0';
+            const elRef = cat.el;
+            setTimeout(() => elRef.remove(), 320);
+          }
+        }, 320);
+      });
+
+      layer.appendChild(el);
+      cats.set(task.id, cat);
+    }
+
+    function removeCat(id, celebrate) {
+      const cat = cats.get(id);
+      if (!cat) return;
+      if (celebrate) {
+        popBurst(cat);
+      }
+      cat.el.style.transition = 'opacity 0.3s, transform 0.3s';
+      cat.el.style.opacity = '0';
+      const el = cat.el;
+      setTimeout(() => el.remove(), 320);
+      cats.delete(id);
+    }
+
+    function say(cat, kind) {
+      cat.bubble.textContent = pickMessage(kind);
+      cat.el.classList.add('talking');
+      cat.talking = 100; // frames (~1.6s)
+    }
+
+    function popBurst(cat) {
+      const emojis = ['❤️', '💛', '💚', '✨', '🎉', '💜'];
+      for (let i = 0; i < 5; i++) {
+        const pop = document.createElement('div');
+        pop.className = 'pop';
+        pop.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        pop.style.left = `${cat.x + 14 + rand(-10, 10)}px`;
+        pop.style.top = `${cat.y}px`;
+        pop.style.animationDelay = `${i * 70}ms`;
+        layer.appendChild(pop);
+        setTimeout(() => pop.remove(), 1100);
+      }
+      const colors = ['#0071e3', '#34c759', '#ff9500', '#ff2d55', '#af52de', '#ffd700'];
+      for (let i = 0; i < 10; i++) {
+        const spark = document.createElement('div');
+        spark.className = 'spark';
+        spark.style.left = `${cat.x + 22}px`;
+        spark.style.top = `${cat.y + 22}px`;
+        spark.style.background = colors[Math.floor(Math.random() * colors.length)];
+        const angle = (Math.PI * 2 * i) / 10;
+        spark.style.setProperty('--dx', `${Math.cos(angle) * rand(30, 70)}px`);
+        spark.style.setProperty('--dy', `${Math.sin(angle) * rand(30, 70)}px`);
+        layer.appendChild(spark);
+        setTimeout(() => spark.remove(), 800);
+      }
+    }
+
+    ipcRenderer.on('hover-end', () => {
+      cats.forEach(cat => { cat.hovering = false; });
+    });
+
+    ipcRenderer.on('cats-sync', (event, tasks) => {
+      console.log('overlay cats-sync received:', tasks.length, tasks.map(t => t.text));
+      lastSyncedTasks = Array.isArray(tasks) ? tasks : [];
+      const ids = new Set(lastSyncedTasks.map(t => t.id));
+
+      // Remove cats whose tasks are gone
+      [...cats.keys()].forEach(id => {
+        if (!ids.has(id)) {
+          const cat = cats.get(id);
+          if (cat) { cat.el.remove(); cats.delete(id); }
+        }
+      });
+
+      // Add cats for new tasks (unless hidden)
+      if (!catsHidden) {
+        lastSyncedTasks.forEach(task => {
+          if (!cats.has(task.id)) createCat(task);
+        });
+      }
+
+      reportPositions();
+    });
+
+    // Animation loop
+    let lastT = 0;
+    let posTick = 0;
+    function loop(t) {
+      if (catsHidden) {
+        requestAnimationFrame(loop);
+        return;
+      }
+      if (t - lastT > 16) {
+        lastT = t;
+
+        cats.forEach(cat => {
+          // Talking countdown
+          if (cat.talking > 0) {
+            cat.talking--;
+            if (cat.talking === 0) {
+              cat.el.classList.remove('talking');
+              cat.bubble.textContent = cat.text;
+            }
+          }
+
+          // Knocked out: fade, sink, then respawn
+          if (cat.knocked > 0) {
+            cat.knocked--;
+            if (cat.knocked === 0) {
+              cat.x = rand(60, W - 100);
+              cat.y = rand(100, H - 140);
+              newTarget(cat);
+              cat.el.classList.remove('knocked');
+              cat.el.style.opacity = '1';
+              cat.el.style.transform = `translate(${cat.x}px, ${cat.y}px)`;
+              cat.el.classList.add('bob');
+              const pop = document.createElement('div');
+              pop.className = 'pop';
+              pop.textContent = '✨';
+              pop.style.left = `${cat.x + 14}px`;
+              pop.style.top = `${cat.y}px`;
+              layer.appendChild(pop);
+              setTimeout(() => pop.remove(), 900);
+            } else {
+              const sink = 1 - (cat.knocked / 60);
+              cat.el.style.transform = `translate(${cat.x}px, ${cat.y + sink * 20}px) rotate(${sink * 90}deg)`;
+              cat.el.style.opacity = String(Math.max(0.2, 1 - sink * 0.7));
+            }
+            return;
+          }
+
+          if (cat.shootCooldown > 0) cat.shootCooldown--;
+
+          // Pause sometimes (cat stops to look around)
+          if (cat.pause > 0) {
+            cat.pause--;
+            cat.el.classList.remove('bob');
+            return;
+          }
+          if (Math.random() < 0.004) {
+            cat.pause = Math.floor(rand(40, 140));
+            return;
+          }
+          cat.el.classList.add('bob');
+
+          // Move the cat unless the user is hovering over it (freeze so they can click)
+          if (!cat.hovering) {
+            const dx = cat.tx - cat.x;
+            const dy = cat.ty - cat.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < 6) {
+              newTarget(cat);
+            } else {
+              cat.x += (dx / dist) * cat.speed;
+              cat.y += (dy / dist) * cat.speed;
+              cat.el.style.transform = `translate(${cat.x}px, ${cat.y}px)`;
+            }
+          }
+        });
+
+        // Pet interactions: shoot when cats get close OR align on straight angles
+        const catArr = [...cats.values()];
+        for (let i = 0; i < catArr.length; i++) {
+          for (let j = i + 1; j < catArr.length; j++) {
+            const a = catArr[i];
+            const b = catArr[j];
+            if (a.knocked > 0 || b.knocked > 0) continue;
+            if (a.shootCooldown > 0 || b.shootCooldown > 0) continue;
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const dist = Math.hypot(dx, dy);
+            // Close proximity
+            const close = dist < 95 && dist > 20;
+            // Same horizontal line (dy ≈ 0)
+            const horizontal = Math.abs(dy) < 18;
+            // Same diagonal (|dx| ≈ |dy|)
+            const diag = Math.abs(Math.abs(dx) - Math.abs(dy)) < 18 && dist > 30;
+            if ((close || horizontal || diag) && Math.random() < 0.05) {
+              const shooter = Math.random() < 0.5 ? a : b;
+              const target = shooter === a ? b : a;
+              triggerShoot(shooter, target);
+              shooter.shootCooldown = 600;
+              target.shootCooldown = 600;
+            }
+          }
+        }
+
+        // Occasional reminder chatter - flashes the task name
+        if (cats.size > 0 && Date.now() - lastReminder > 45000) {
+          lastReminder = Date.now();
+          const arr = [...cats.values()];
+          const c = arr[Math.floor(Math.random() * arr.length)];
+          c.bubble.textContent = c.text;
+          c.el.classList.add('talking');
+          c.talking = 100;
+        }
+
+        // Keep the main process in sync with cat hitboxes (~10x/sec)
+        if (++posTick % 6 === 0) reportPositions();
+      }
+      requestAnimationFrame(loop);
+    }
+
+    // Start the animation loop
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

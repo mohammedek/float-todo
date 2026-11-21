@@ -1,0 +1,34 @@
+{
+  "name": "floating-todo",
+  "version": "1.0.0",
+  "description": "A beautiful floating todo app that stays on top of all windows",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac",
+    "build:dmg": "electron-builder --mac dmg",
+    "build:zip": "electron-builder --mac zip"
+  },
+  "author": "You",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.floatingtodo.app",
+    "productName": "Float Todo",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "dmg": {
+      "title": "Float Todo",
+      "backgroundColor": "#12121a"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+icon.iconset/
+dist/
+
+# User data (never commit personal tasks)
+*.json.bak
+todos.json
+game.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Electron
+out/

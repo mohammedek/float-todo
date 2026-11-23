@@ -82,10 +82,6 @@ function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.send('request-cats-sync');
   });
-
-  mainWindow.webContents.on('console-message', (event, level, message) => {
-    console.log('[renderer]', message);
-  });
 }
 
 // Full-screen, transparent, click-through window where the cats roam

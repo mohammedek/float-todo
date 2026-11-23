@@ -582,18 +582,15 @@
 
       el.addEventListener('click', (e) => {
         e.stopPropagation();
-        // Triple-click tracking
+        // Track clicks for double-click detection
         cat.clickCount = (cat.clickCount || 0) + 1;
         if (cat.clickTimer2) clearTimeout(cat.clickTimer2);
         cat.clickTimer2 = setTimeout(() => {
           const count = cat.clickCount || 0;
           cat.clickCount = 0;
           cat.clickTimer2 = null;
-          if (count >= 3) {
-            // Triple click: hide all cats for 1 hour
-            hideAllCats();
-          } else if (count === 2) {
-            // Double click: open the todo panel
+          if (count >= 2) {
+            // Double tap: open/show the todo panel
             ipcRenderer.send('show-app');
           } else {
             // Single click: complete the task
@@ -606,7 +603,7 @@
             const elRef = cat.el;
             setTimeout(() => elRef.remove(), 320);
           }
-        }, 320);
+        }, 300);
       });
 
       layer.appendChild(el);

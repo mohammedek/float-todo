@@ -181,13 +181,20 @@ function notifyPendingTasks(cats) {
     console.error('Notification error:', e);
   }
 
-  // Text-to-speech: "Hi Mohammed, you have N pending tasks. Please complete them quickly."
+  // Text-to-speech: "Hi Mohammed, you have N pending tasks from [date] to [date]. You have been pending that for X days."
   try {
-    const taskNames = cats.slice(0, 3).map(c => c.text).join(', ');
+    const oldestDate = cats.reduce((oldest, t) => {
+      const d = new Date(t.createdAt || Date.now());
+      return d < oldest ? d : oldest;
+    }, new Date());
+    const today = new Date();
+    const daysPending = Math.max(1, Math.ceil((today - oldestDate) / (1000 * 60 * 60 * 24)));
+    const fromDate = oldestDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const toDate = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const speechText = cats.length === 1
-      ? `Hi Mohammed, you have a pending task: ${cats[0].text}. Please complete it quickly.`
-      : `Hi Mohammed, you have ${cats.length} pending tasks: ${taskNames}. Please complete them quickly.`;
-    exec(`say "${speechText.replace(/"/g, '\\"')}"`, { timeout: 15000 }, (err) => {
+      ? `Hi Mohammed, you have 1 pending task from ${fromDate} to ${toDate}. You have been pending that for ${daysPending} day${daysPending === 1 ? '' : 's'}.`
+      : `Hi Mohammed, you have ${cats.length} pending tasks from ${fromDate} to ${toDate}. You have been pending that for ${daysPending} days.`;
+    exec(`say "${speechText.replace(/"/g, '\\\"')}"`, { timeout: 15000 }, (err) => {
       if (err) console.error('TTS error:', err.message);
     });
   } catch (e) {

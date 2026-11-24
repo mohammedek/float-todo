@@ -181,6 +181,19 @@ function notifyPendingTasks(cats) {
     console.error('Notification error:', e);
   }
 
+  // Text-to-speech: "Hi Mohammed, you have N pending tasks. Please complete them quickly."
+  try {
+    const taskNames = cats.slice(0, 3).map(c => c.text).join(', ');
+    const speechText = cats.length === 1
+      ? `Hi Mohammed, you have a pending task: ${cats[0].text}. Please complete it quickly.`
+      : `Hi Mohammed, you have ${cats.length} pending tasks: ${taskNames}. Please complete them quickly.`;
+    exec(`say "${speechText.replace(/"/g, '\\"')}"`, { timeout: 15000 }, (err) => {
+      if (err) console.error('TTS error:', err.message);
+    });
+  } catch (e) {
+    console.error('TTS error:', e);
+  }
+
   // Share to the Hermes agent (Telegram reminder) — optional, requires HERMES_PATH env var
   const hermes = process.env.HERMES_PATH || '';
   const hermesTarget = process.env.HERMES_TARGET || '';

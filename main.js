@@ -173,7 +173,7 @@ function notifyPendingTasks(cats) {
         body: cats.length === 1
           ? `Don't let "${cats[0].text}" sit there. Knock it out now.`
           : `${cats.length} tasks waiting. Pick one and start. No excuses.`,
-        silent: false
+        silent: true
       });
       n.show();
     }
